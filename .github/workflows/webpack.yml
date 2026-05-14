@@ -1,0 +1,39 @@
+name: Build Chrome DevTools MCP
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:  # 允许手动触发
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        node-version: [20.x, 22.x]  # 符合package.json要求
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    - name: Install dependencies
+      run: npm ci  # 使用npm ci确保依赖版本一致性
+    - name: Type check
+      run: npm run typecheck
+    - name: Build project
+      run: npm run build
+    - name: Bundle package
+      run: npm run bundle
+    - name: Verify package
+      run: npm run verify-npm-package
+    - name: Create distribution package
+      run: npm pack
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: chrome-devtools-mcp-${{ matrix.node-version }}
+        path: chrome-devtools-mcp-*.tgz
+        retention-days: 30
